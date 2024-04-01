@@ -392,13 +392,9 @@ void BMI270Sensor::motionLoop() {
         if (elapsed >= sendInterval) {
             lastRotationPacketSent = now - (elapsed - sendInterval);
 
-            fusedRotation = sfusion.getQuaternionQuat();
-            setFusedRotationReady();
+            setFusedRotation(sfusion.getQuaternionQuat() * sensorOffset);
 
-            acceleration = sfusion.getLinearAccVec();
-            setAccelerationReady();
-
-            fusedRotation *= sensorOffset;
+            setAcceleration(sfusion.getLinearAccVec());
 
             optimistic_yield(100);
         }
@@ -569,7 +565,7 @@ void BMI270Sensor::onGyroRawSample(uint32_t dtMicros, int16_t x, int16_t y, int1
         Gxyz[2] = gyroCalibratedStatic[2];
     }
     remapGyroAccel(&Gxyz[0], &Gxyz[1], &Gxyz[2]);
-    sfusion.updateGyro(Gxyz, (double)dtMicros * 1.0e-6);
+    sfusion.updateGyro(Gxyz, (sensor_real_t)dtMicros * 1.0e-6);
 
     optimistic_yield(100);
 }
@@ -586,7 +582,7 @@ void BMI270Sensor::onAccelRawSample(uint32_t dtMicros, int16_t x, int16_t y, int
     lastAxyz[0] = Axyz[0];
     lastAxyz[1] = Axyz[1];
     lastAxyz[2] = Axyz[2];
-    sfusion.updateAcc(Axyz, dtMicros);
+	sfusion.updateAcc(Axyz, (sensor_real_t)dtMicros * 1.0e-6);
     optimistic_yield(100);
 }
 void BMI270Sensor::onMagRawSample(uint32_t dtMicros, int16_t x, int16_t y, int16_t z) {
@@ -898,12 +894,12 @@ void BMI270Sensor::maybeCalibrateAccel() {
         m_Logger.debug("Calculating accelerometer calibration data...");
     #elif BMI270_ACCEL_CALIBRATION_METHOD == ACCEL_CALIBRATION_METHOD_6POINT
         RestDetectionParams calibrationRestDetectionParams;
-        calibrationRestDetectionParams.restMinTimeMicros = 3 * 1e6;
+        calibrationRestDetectionParams.restMinTime = 3;
         calibrationRestDetectionParams.restThAcc = 0.25f;
         RestDetection calibrationRestDetection(
             calibrationRestDetectionParams,
-            BMI270_ODR_GYR_MICROS / 1e6f,
-            BMI270_ODR_ACC_MICROS / 1e6f
+            BMI270_ODR_GYR_MICROS * 1.0e-6,
+            BMI270_ODR_ACC_MICROS * 1.0e-6
         );
 
         constexpr uint16_t expectedPositions = 6;
@@ -926,7 +922,7 @@ void BMI270Sensor::maybeCalibrateAccel() {
             scaled[1] = ay * BMI270_ASCALE;
             scaled[2] = az * BMI270_ASCALE;
 
-            calibrationRestDetection.updateAcc(BMI270_ODR_ACC_MICROS, scaled);
+            calibrationRestDetection.updateAcc(BMI270_ODR_ACC_MICROS * 1.0e-6, scaled);
 
             if (waitForMotion) {
                 if (!calibrationRestDetection.getRestDetected()) {
