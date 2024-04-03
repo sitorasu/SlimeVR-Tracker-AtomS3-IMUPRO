@@ -392,7 +392,7 @@ void BMI270Sensor::motionLoop() {
         if (elapsed >= sendInterval) {
             lastRotationPacketSent = now - (elapsed - sendInterval);
 
-            setFusedRotation(sfusion.getQuaternionQuat() * sensorOffset);
+            setFusedRotation(sfusion.getQuaternionQuat());
 
             setAcceleration(sfusion.getLinearAccVec());
 
