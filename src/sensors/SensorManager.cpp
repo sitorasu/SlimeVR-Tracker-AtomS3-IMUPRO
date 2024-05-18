@@ -43,6 +43,27 @@ namespace SlimeVR
 {
     namespace Sensors
     {
+        static void swapI2CBusChannel(uint8_t sensorID) {
+            // Get channel assosiated to the sensor ID, see the following table:
+            // SensorID | Channel
+            // ---------|--------
+            //    0     |    0
+            //    1     |    1
+            //    2     |    4
+            //    3     |    5
+            uint8_t channel = 0;
+            if (sensorID <= 1) {
+                channel = sensorID;
+            } else {
+                channel = sensorID + 2;
+            }
+
+            // Send command to change channel
+			Wire.beginTransmission(0x70);
+			Wire.write(1 << channel);
+			Wire.endTransmission();
+		}
+
         Sensor* SensorManager::buildSensor(uint8_t sensorID, uint8_t imuType, uint8_t address, float rotation, uint8_t sclPin, uint8_t sdaPin, bool optional, int extraParam)
         {
             m_Logger.trace("Building IMU with: id=%d,\n\
@@ -58,6 +79,7 @@ namespace SlimeVR
             // Clear and reset I2C bus for each sensor upon startup
             I2CSCAN::clearBus(sdaPin, sclPin);
             swapI2C(sclPin, sdaPin);
+            swapI2CBusChannel(sensorID);
 
             if (I2CSCAN::hasDevOnBus(address)) {
                 m_Logger.trace("Sensor %d found at address 0x%02X", sensorID + 1, address);
@@ -197,6 +219,7 @@ namespace SlimeVR
             for (auto sensor : m_Sensors) {
                 if (sensor->isWorking()) {
                     swapI2C(sensor->sclPin, sensor->sdaPin);
+                    swapI2CBusChannel(sensor->getSensorId());
                     sensor->postSetup();
                 }
             }
@@ -209,6 +232,7 @@ namespace SlimeVR
             for (auto sensor : m_Sensors) {
                 if (sensor->isWorking()) {
                     swapI2C(sensor->sclPin, sensor->sdaPin);
+                    swapI2CBusChannel(sensor->getSensorId());
                     sensor->motionLoop();
                 }
                 if (sensor->getSensorState() == SensorStatus::SENSOR_ERROR)
