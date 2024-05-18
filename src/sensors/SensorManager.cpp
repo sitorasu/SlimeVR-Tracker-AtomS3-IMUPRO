@@ -44,23 +44,11 @@ namespace SlimeVR
     namespace Sensors
     {
         static void swapI2CBusChannel(uint8_t sensorID) {
-            // Get channel assosiated to the sensor ID, see the following table:
-            // SensorID | Channel
-            // ---------|--------
-            //    0     |    0
-            //    1     |    1
-            //    2     |    4
-            //    3     |    5
-            uint8_t channel = 0;
-            if (sensorID <= 1) {
-                channel = sensorID;
-            } else {
-                channel = sensorID + 2;
-            }
+            static uint8_t id2ChannelMap[MAX_IMU_COUNT] = {0, 1, 2, 4, 5};
 
             // Send command to change channel
 			Wire.beginTransmission(0x70);
-			Wire.write(1 << channel);
+			Wire.write(1 << id2ChannelMap[sensorID]);
 			Wire.endTransmission();
 		}
 

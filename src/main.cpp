@@ -57,6 +57,7 @@ void setup()
     // Wait for the Computer to be able to connect.
     delay(2000);
 #endif
+    delay(10000);
 
     Serial.println();
     Serial.println();
