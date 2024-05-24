@@ -78,6 +78,7 @@ namespace SlimeVR
                 // Clear and reset I2C bus for each sensor upon startup
                 I2CSCAN::clearBus(sdaPin, sclPin);
                 swapI2C(sclPin, sdaPin);
+                swapI2CBusChannel(sensorID);
 
                 if (I2CSCAN::hasDevOnBus(address)) {
                     m_Logger.trace("Sensor %d found at address 0x%02X", sensorID + 1, address);
@@ -103,6 +104,7 @@ namespace SlimeVR
             uint8_t activeSDA = 0;
             bool running = false;
             void swapI2C(uint8_t scl, uint8_t sda);
+            static void swapI2CBusChannel(uint8_t sensorID);
             
             uint32_t m_LastBundleSentAtMicros = micros();
         };

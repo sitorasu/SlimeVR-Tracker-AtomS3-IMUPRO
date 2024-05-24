@@ -57,6 +57,15 @@ namespace SlimeVR
         using SoftFusionLSM6DSR = SoftFusionSensor<SoftFusion::Drivers::LSM6DSR, SoftFusion::I2CImpl>;
         using SoftFusionMPU6050 = SoftFusionSensor<SoftFusion::Drivers::MPU6050, SoftFusion::I2CImpl>;
 
+        void SensorManager::swapI2CBusChannel(uint8_t sensorID) {
+            static uint8_t id2ChannelMap[MAX_IMU_COUNT] = {0, 1, 2, 3, 4};
+
+            // Send command to change channel
+			Wire.beginTransmission(0x70);
+			Wire.write(1 << id2ChannelMap[sensorID]);
+			Wire.endTransmission();
+		}
+
         // TODO Make it more generic in the future and move another place (abstract sensor interface)
         void SensorManager::swapI2C(uint8_t sclPin, uint8_t sdaPin)
         {
@@ -123,6 +132,7 @@ namespace SlimeVR
             for (auto &sensor : m_Sensors) {
                 if (sensor->isWorking()) {
                     swapI2C(sensor->sclPin, sensor->sdaPin);
+                    swapI2CBusChannel(sensor->getSensorId());
                     sensor->postSetup();
                 }
             }
@@ -135,6 +145,7 @@ namespace SlimeVR
             for (auto &sensor : m_Sensors) {
                 if (sensor->isWorking()) {
                     swapI2C(sensor->sclPin, sensor->sdaPin);
+                    swapI2CBusChannel(sensor->getSensorId());
                     sensor->motionLoop();
                 }
                 if (sensor->getSensorState() == SensorStatus::SENSOR_ERROR)
