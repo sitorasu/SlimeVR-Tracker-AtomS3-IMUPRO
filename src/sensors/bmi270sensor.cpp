@@ -344,7 +344,7 @@ void BMI270Sensor::motionLoop() {
                 if (end - lastCpuUsagePrinted > 1e6) {
                     bool restDetected = sfusion.getRestDetected();
 
-                    #define BMI160_FUSION_TYPE "sfusion"
+                    #define BMI270_FUSION_TYPE "sfusion"
 
                     m_Logger.debug("readFIFO took %0.4f ms, read gyr %i acc %i mag %i rest %i resets %i readerrs %i type " BMI270_FUSION_TYPE,
                         ((float)cpuUsageMicros / 1e3f),
