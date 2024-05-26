@@ -206,9 +206,11 @@ public:
             m_status = SensorStatus::SENSOR_ERROR;
             return;
         }
-
+#if 0
         SlimeVR::Configuration::CalibrationConfig sensorCalibration = configuration.getCalibration(sensorId);
-
+#else
+        SlimeVR::Configuration::CalibrationConfig sensorCalibration = configuration.getCalibration(2);
+#endif
         // If no compatible calibration data is found, the calibration data will just be zero-ed out
         if (sensorCalibration.type == SlimeVR::Configuration::CalibrationConfigType::SFUSION
             && (sensorCalibration.data.sfusion.ImuType == imu::Type)
