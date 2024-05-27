@@ -128,11 +128,7 @@ void BMI270Sensor::motionSetup() {
 
     // Initialize the configuration
     {
-#if 0
         SlimeVR::Configuration::CalibrationConfig sensorCalibration = configuration.getCalibration(sensorId);
-#else
-        SlimeVR::Configuration::CalibrationConfig sensorCalibration = configuration.getCalibration(3);
-#endif
         // If no compatible calibration data is found, the calibration data will just be zero-ed out
         switch (sensorCalibration.type) {
         case SlimeVR::Configuration::CalibrationConfigType::BMI270:
