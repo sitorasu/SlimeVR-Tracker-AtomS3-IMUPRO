@@ -530,6 +530,45 @@ void BMI270Sensor::readFIFO() {
 }
 
 void BMI270Sensor::onGyroRawSample(uint32_t dtMicros, int16_t x, int16_t y, int16_t z) {
+#if 0
+    static unsigned long lastLogOutputTime = 0;
+
+    constexpr int HISTORY_LEN = 50;
+    static int xyzHistory[3][HISTORY_LEN] = {}; // ring buffer
+    static int xyzHistoryInsertionPos = 0;      // next insertion position of ring buffer
+
+    unsigned long now = micros();
+    constexpr unsigned long logOutputInterval = 100 * 1000; // us
+    bool outputLog = (now - lastLogOutputTime) > logOutputInterval;
+    {
+        constexpr double UPDATE_RATE = 0.6;
+        int16_t Gxyz[] = {x, y, z};
+        gyroOffsetCalibrator.addGyroSample(dtMicros, Gxyz);
+        gyroOffsetCalibrator.addAccSample(dtMicros, &acceleration[0]);
+        if (gyroOffsetCalibrator.isCalibrationFinished()) {
+            int16_t newGyroOffset[3];
+            gyroOffsetCalibrator.getCalibratedGyroOffset(newGyroOffset);
+
+            vqf_real_t out[3];
+            for (int i = 0; i < 3; i++) {
+                out[i] = newGyroOffset[i] * gscaleX;
+            }
+            sfusion.setBiasEstimate(out);
+
+            m_Calibration.G_off[0] = 0.0f;
+            m_Calibration.G_off[1] = 0.0f;
+            m_Calibration.G_off[2] = 0.0f;
+
+            //for (int i = 0; i < 3; i++) {
+            //    double prev = m_Calibration.G_off[i];
+            //    double curr = (1 - UPDATE_RATE) * m_Calibration.G_off[i] + UPDATE_RATE * newGyroOffset[i];
+            //    m_Logger.debug("G_off[%d] updated: %.2lf => %.2lf", i, prev, curr);
+            //    m_Calibration.G_off[i] = curr;
+            //}
+            gyroOffsetCalibrator.restartCalibration();
+        }
+    }
+#endif
     #if BMI270_DEBUG
         gyrReads++;
     #endif
@@ -566,10 +605,43 @@ void BMI270Sensor::onGyroRawSample(uint32_t dtMicros, int16_t x, int16_t y, int1
     }
     remapGyroAccel(&Gxyz[0], &Gxyz[1], &Gxyz[2]);
     sfusion.updateGyro(Gxyz, (sensor_real_t)dtMicros * 1.0e-6);
+#if 0
+    if (outputLog) {
+        // add new sample to history and calculate average
+        int xyz[] = {x, y, z};
+        int xyzAvg[3] = {};
+        for (int i = 0; i < 3; i++) {
+            xyzHistory[i][xyzHistoryInsertionPos % HISTORY_LEN] = xyz[i];
 
+            for (int j = 0; j < HISTORY_LEN; j++) {
+                xyzAvg[i] += xyzHistory[i][j];
+            }
+            xyzAvg[i] /= HISTORY_LEN;
+        }
+
+        vqf_real_t bias[3];
+        vqf_real_t sigma;
+        sigma = sfusion.getBiasEstimate(bias);
+        m_Logger.debug("(raw) gx: %5d (%5d), gy: %5d (%5d), gz: %5d (%5d), (vqf bias) gx: %5.2f, gy: %5.2f, gz: %5.2f, sigma: %5.2f",
+                       (int)x, xyzAvg[0], (int)y, xyzAvg[1], (int)z, xyzAvg[2],
+                       bias[0], bias[1], bias[2], sigma);
+        lastLogOutputTime = now;
+        xyzHistoryInsertionPos++;
+    }
+#endif
     optimistic_yield(100);
 }
 void BMI270Sensor::onAccelRawSample(uint32_t dtMicros, int16_t x, int16_t y, int16_t z) {
+    static unsigned long lastLogOutputTime = 0;
+    unsigned long now = micros();
+    constexpr unsigned long logOutputInterval = 200 * 1000; // us
+    bool outputLog = (now - lastLogOutputTime) > logOutputInterval;
+
+#if 0
+    constexpr int HISTORY_LEN = 50;
+    static int xyzHistory[3][HISTORY_LEN] = {}; // ring buffer
+    static int xyzHistoryInsertionPos = 0;      // next insertion position of ring buffer
+#endif
     #if BMI270_DEBUG
         accReads++;
     #endif
@@ -583,6 +655,33 @@ void BMI270Sensor::onAccelRawSample(uint32_t dtMicros, int16_t x, int16_t y, int
     lastAxyz[1] = Axyz[1];
     lastAxyz[2] = Axyz[2];
 	sfusion.updateAcc(Axyz, (sensor_real_t)dtMicros * 1.0e-6);
+#if 0
+    if (outputLog) {
+        // add new sample to history and calculate average
+        int xyz[] = {x, y, z};
+        int xyzAvg[3] = {};
+        for (int i = 0; i < 3; i++) {
+            xyzHistory[i][xyzHistoryInsertionPos % HISTORY_LEN] = xyz[i];
+
+            for (int j = 0; j < HISTORY_LEN; j++) {
+                xyzAvg[i] += xyzHistory[i][j];
+            }
+            xyzAvg[i] /= HISTORY_LEN;
+        }
+
+        m_Logger.debug("(raw) ax: %5d (%5d), ay: %5d (%5d), az: %5d (%5d)",
+                       (int)x, xyzAvg[0], (int)y, xyzAvg[1], (int)z, xyzAvg[2]);
+        lastLogOutputTime = now;
+        xyzHistoryInsertionPos++;
+    }
+#endif
+#if 1
+    if (outputLog) {
+        m_Logger.debug("gx: %7.2f, gy: %7.2f, gz: %7.2f, ax: %7.2f, ay: %7.2f, az: %7.2f",
+                       Gxyz[0], Gxyz[1], Gxyz[2], Axyz[0], Axyz[1], Axyz[2]);
+        lastLogOutputTime = now;
+    }
+#endif
     optimistic_yield(100);
 }
 void BMI270Sensor::onMagRawSample(uint32_t dtMicros, int16_t x, int16_t y, int16_t z) {

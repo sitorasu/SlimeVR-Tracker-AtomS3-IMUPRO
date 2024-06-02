@@ -34,6 +34,7 @@
 
 #include "../motionprocessing/GyroTemperatureCalibrator.h"
 #include "../motionprocessing/RestDetection.h"
+#include "../motionprocessing/DynamicGyroOffsetCalibrator.h"
 
 #if BMI270_USE_VQF
     #if USE_6_AXIS
@@ -124,7 +125,8 @@ class BMI270Sensor : public Sensor {
         BMI270Sensor(uint8_t id, uint8_t address, float rotation, uint8_t sclPin, uint8_t sdaPin, int axisRemap=AXIS_REMAP_DEFAULT) :
             Sensor("BMI270Sensor", IMU_BMI270, id, address, rotation, sclPin, sdaPin)
             , axisRemap(axisRemap),
-            sfusion(BMI270_ODR_GYR_MICROS / 1e6f, BMI270_ODR_ACC_MICROS / 1e6f, BMI270_ODR_MAG_MICROS / 1e6f)
+            sfusion(BMI270_ODR_GYR_MICROS / 1e6f, BMI270_ODR_ACC_MICROS / 1e6f, BMI270_ODR_MAG_MICROS / 1e6f),
+            gyroOffsetCalibrator(BMI270_GSCALE, BMI270_GSCALE, BMI270_GSCALE, m_Logger)
         {
         };
         ~BMI270Sensor(){};
@@ -145,6 +147,9 @@ class BMI270Sensor : public Sensor {
             m_Logger.info("Temperature calibration state has been reset for sensorId:%i", sensorId);
         };
         void saveTemperatureCalibration() override final;
+        float* getCalibratedGyroOffset() override final {
+            return m_Calibration.G_off;
+        }
 
         void applyAccelCalibrationAndScale(sensor_real_t Axyz[3]);
         void applyMagCalibrationAndScale(sensor_real_t Mxyz[3]);
@@ -228,6 +233,8 @@ class BMI270Sensor : public Sensor {
         bool isMagCalibrated = false;
 
         SlimeVR::Configuration::BMI270CalibrationConfig m_Calibration = {};
+
+        DynamicGyroOffsetCalibrator gyroOffsetCalibrator;
 };
 
 #endif

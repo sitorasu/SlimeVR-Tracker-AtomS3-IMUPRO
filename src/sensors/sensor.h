@@ -66,6 +66,7 @@ public:
     virtual void printDebugTemperatureCalibrationState();
     virtual void resetTemperatureCalibrationState();
     virtual void saveTemperatureCalibration();
+    virtual float* getCalibratedGyroOffset() { return nullptr; }
     bool isWorking() {
         return working;
     };

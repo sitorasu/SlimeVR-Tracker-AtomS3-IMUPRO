@@ -29,6 +29,8 @@
 #include "batterymonitor.h"
 #include "utils.h"
 
+#include "sensors/bmi270sensor.h"
+
 #if ESP32
     #include "nvs_flash.h"
 #endif
@@ -142,6 +144,15 @@ namespace SerialCommands {
                 UNPACK_QUATERNION(sensor->getFusedRotation()),
                 sensor->isWorking() ? "true" : "false",
                 sensor->hadData ? "true" : "false"
+            );
+
+            float* gyroOffset = sensor->getCalibratedGyroOffset();
+
+            if (!gyroOffset) return;
+
+            logger.info(
+                "Sensor[%d]: Gyro offset gx: %7.3f, gy: %7.3f, gz: %7.3f",
+                sensor->getSensorId(), gyroOffset[0], gyroOffset[1], gyroOffset[2]
             );
         }
     }
